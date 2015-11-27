@@ -14,3 +14,14 @@ A program that implements word dictionary with location positions stored from te
  * http://alexcode.tumblr.com/question_9
  * 
  */
+
+
+Please note this problem stores the first character position of the word within the line number.. It does not store the occurence position of the entire string word..
+
+For instance,
+
+"test frank giordano"
+
+test located at line 1, position 0 frank located at line 1, position 5 etc
+
+whereas entire word position would be: test located at position 0 and frank located at position 1 and giordano located at position 3
