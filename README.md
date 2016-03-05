@@ -7,7 +7,7 @@ A program that implements word dictionary with location positions stored from te
  * implements second half of the following link
  * http://www.ardendertat.com/2011/12/20/programming-interview-questions-23-find-word-positions-in-text/
  * this program uses trie data structure.
- * difference from my programs doing the same with a Hash structure is here I take words into consider only.
+ * difference from my programs doing the same with a Hash structure is here I take words into consideration only.
  * non alphabetic characters are ignored. 
  * 
  * Thanks for the following code snippet for reference at the following site:
