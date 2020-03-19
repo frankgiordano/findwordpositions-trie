@@ -16,7 +16,9 @@ import java.util.Map.Entry;
  *
  * Thanks for the following code snippet for reference at the following site:
  * http://alexcode.tumblr.com/question_9
- * 
+ *
+ * The main data structure is a custom built trie.
+ *
  * author: Frank Giordano 11/26/2015
  */
 class Node {
@@ -130,16 +132,26 @@ class Trie {
         if (dictionary.getTerminalNode(searchWord) == null) {
             System.out.println(" The following word " + searchWord + " was not found.");
         } else {
-            for (Entry<Integer, List<Integer>> entry : dictionary.getTerminalNode(searchWord)
-                    .getWordLinesPositionsInfo().entrySet()) {
-                System.out.println("The following word " + searchWord + " was found at line number " + entry.getKey()
-                        + " at position(s) " + entry.getValue().toString());
+            for (Entry<Integer, List<Integer>> entry : dictionary.getTerminalNode(searchWord).getWordLinesPositionsInfo().entrySet()) {
+                foundMsg(searchWord, entry);
             }
         }
     }
 
-    // Depth First Search
-    // output all words and their lines and positions locations within the given text file
+    private void foundMsg(String searchWord, Entry<Integer, List<Integer>> entry) {
+        StringBuilder message = new StringBuilder();
+        message.append("The following word ");
+        message.append("\"");
+        message.append(searchWord);
+        message.append("\"");
+        message.append(" was found at line number ");
+        message.append(entry.getKey());
+        message.append(" at position(s): ");
+        message.append((entry.getValue().toString()));
+        System.out.println(message);
+    }
+
+    // Depth First Search - output all words and their lines and positions locations within the given text file
     public void output(List<Node> currentPath, String indent) {
         Node current = currentPath.get(currentPath.size() - 1);
 
@@ -168,20 +180,29 @@ class Trie {
 
 }
 
-public class Find {
+public class FindWord {
 
-    private static Trie dictionary;
+    private static Trie dictionary = null;
     private static String fileName = "t3.txt";
 
-    private static void processFileWordSearch(String searchWord) {
+    public static void search(String searchWord) {
+        if (dictionary != null) {  // use current cache
+            dictionary.printALL(searchWord, dictionary);
+            return;
+        }
 
+        processFile();
+        dictionary.printALL(searchWord, dictionary);
+    }
+
+    private static void processFile() {
+
+        int position = 0;
+        int lineCount = 0;
+        String line = "";
+
+        dictionary = new Trie();
         try {
-            int posFound = 0;
-            int lineCount = 0;
-            String line = "";
-            dictionary = new Trie();
-
-            // create a reader which reads our file.
             BufferedReader bReader = new BufferedReader(new FileReader(fileName));
 
             // while we loop through the file, read each line until there is nothing left to read.
@@ -189,62 +210,80 @@ public class Find {
             while ((line = bReader.readLine()) != null) {
 
                 lineCount++;
+
                 line = toLowerCase(line);
-                String[] words = line.split(" ");
-
+                String[] words = line.replaceAll("[^a-z0-9]", " ").split(" ");
                 for (String word : words) {
-                    // if the string is empty or not a word skip it
-                    if (word.isEmpty() || !isWord(word)) {
+                    if ("".equals(word))
                         continue;
-                    }
 
-                    posFound = line.indexOf(word);
-                    if (dictionary.contains(word)) {
-                        Node node = dictionary.getTerminalNode(word);
-                        if (node.getWordLinesPositionsInfo().get(lineCount) != null) {
-                            node.getWordLinesPositionsInfo().get(lineCount).add(posFound);
-                        } else {
-                            List<Integer> positions = new ArrayList<Integer>();
-                            positions.add(posFound);
-                            node.getWordLinesPositionsInfo().put(lineCount, positions);
+                    int startIndex = 0;
+                    while ((position = line.indexOf(word, startIndex)) != -1) {
+                        startIndex = position + word.length();
+                        // ignore finding the word text within another larger word
+                        if (isWordEmbedded(position, word, line)) {
+                            continue; // skip this position
                         }
-                    } else {
-                        Node node = dictionary.getItem(word);
-                        List<Integer> positions = new ArrayList<Integer>();
-                        positions.add(posFound);
-                        node.getWordLinesPositionsInfo().put(lineCount, positions);
+
+                        // first time this word is seen
+                        if (!dictionary.contains(word)) {
+                            Node node = dictionary.getItem(word);
+                            addWordPosition(position, lineCount, node);
+                            break;
+                        }
+
+                        Node node = dictionary.getTerminalNode(word);
+                        // first time adding a position for this word for this line
+                        if (dictionary.contains(word) && node != null && node.getWordLinesPositionsInfo().get(lineCount) == null) {
+                            addWordPosition(position, lineCount, node);
+                            break;
+                        }
+
+                        // at this point, it is obvious add position to existing word/line storage
+                        List<Integer> positions = node.getWordLinesPositionsInfo().get(lineCount);
+                        // increase last known position to the end of the word so it starts searching there
+                        int lastKnownPos = positions.get(positions.size() - 1) + word.length();
+                        // search for the next word occurrence from current read in line file
+                        position = line.indexOf(word, lastKnownPos);
+                        if (position == -1)
+                            break;
+                        if (!positions.contains(Integer.valueOf(position))) {
+                            positions.add(position);
+                            startIndex = position + word.length();
+                        }
                     }
                 }
-
             }
-            // close the reader.
+
             bReader.close();
-            dictionary.printALL(searchWord, dictionary);
-            // dictionary.printALL(); // print all the words and its locations within the text file.
         } catch (IOException e) {
-            // we encountered an error with the file, print it to the user.
-            System.out.println("Error: " + e.toString());
+            System.out.print("Error reading file. Error message = " + e.getMessage());
+            System.exit(-1);
         }
     }
 
-    private static boolean isWord(String word) {
-        int limit = word.length();
-        int letter, index;
-        boolean value = false;
+    private static void addWordPosition(int position, int lineCount, Node node) {
+        List<Integer> positions = new ArrayList<Integer>();
+        positions.add(position);
+        node.getWordLinesPositionsInfo().put(lineCount, positions);
+    }
 
-        word = word.toLowerCase();
-        for (int i = 0; i < limit; i++) {
-            letter = word.charAt(i);
-            index = letter - 'a';
-            if (index >= 0 && index <= 26) {
-                value = true;
-            } else {
-                value = false;
-                break;
+    private static boolean isWordEmbedded(int position, String word, String line) {
+        if (position != 0 && position != line.length() - 1 && position + (word.length() - 1) != (line.length() - 1)) {
+            boolean isAlphabeticRightSide = Character.isAlphabetic(line.charAt(position + (word.length())));
+            boolean isAlphabeticLeftSide = Character.isAlphabetic(line.charAt(position - 1));
+            if (isAlphabeticRightSide || isAlphabeticLeftSide) {
+                return true;
             }
         }
 
-        return value;
+        if (position == 0 && (position + (word.length()) < line.length())) {
+            boolean isAlphabeticRightSide = Character.isAlphabetic(line.charAt(position + (word.length())));
+            if (isAlphabeticRightSide)
+                return true;
+        }
+
+        return false;
     }
 
     private static String toLowerCase(String input) {
@@ -280,10 +319,11 @@ public class Find {
             }
             searchWord = (new String(input, 0, input.length)).trim();
             if (searchWord.length() > 0) {
-                processFileWordSearch(searchWord);
+                FindWord.search(searchWord);
+            } else {
+                System.exit(0);
             }
         } while (searchWord.length() > 0);
-
     }
 
 }
