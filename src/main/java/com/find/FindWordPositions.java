@@ -1,3 +1,5 @@
+package com.find;
+
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
@@ -179,7 +181,7 @@ class Trie {
 
 }
 
-public class FindWord {
+public class FindWordPositions {
 
     private static Trie dictionary = null;
     private static String fileName = "t3.txt";
@@ -318,7 +320,7 @@ public class FindWord {
             }
             searchWord = (new String(input, 0, input.length)).trim();
             if (searchWord.length() > 0) {
-                FindWord.search(searchWord);
+                FindWordPositions.search(searchWord);
             } else {
                 System.exit(0);
             }
